@@ -1,0 +1,324 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>2024 Frames of Festivity</title>
+    <link href="https://fonts.googleapis.com/css2?family=Monoton&family=Rubik:wght@700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+            background-color: #000000;
+            color: #D3047E;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        h1 {
+            color: #D3047E;
+            font-size: 3rem;
+            text-align: center;
+            font-family: 'Monoton', cursive;
+            font-weight: normal;
+        }
+
+        .button {
+            background-color: #02E2E1;
+            color: #FFFFFF;
+            border: none;
+            padding: 10px 20px;
+            font-size: 1.5rem;
+            cursor: pointer;
+            border-radius: 5px;
+            margin-top: 20px;
+        }
+
+        .button:hover {
+            background-color: #D3047E;
+            color: white;
+        }
+
+        canvas {
+            border: 12px solid #02E2E1;
+            background-color: #000000;
+        }
+
+        .scoreboard-grid {
+            display: grid;
+            grid-template-columns: repeat(11, 1fr);
+            gap: 12px;
+            background-color: #000000;
+            padding: 10px;
+            border-radius: 10px;
+            width: 80%;
+            margin: 20px auto;
+        }
+
+        .score-header {
+            font-family: 'Monoton', cursive;
+            color: #000000;
+            border-radius: 12px;
+            background-color: #02E2E1;
+            padding: 10px;
+            text-align: center;
+            font-size: 2rem;
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .score-cell {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: #02E2E1;
+            color: #000000;
+            border-radius: 12px;
+            font-family: 'Rubik', sans-serif;
+            font-weight: bold;
+            font-size: 1.5rem;
+            height: 50px;
+            width: 100%;
+            box-sizing: border-box;
+            overflow: hidden;
+            text-align: center;
+        }
+
+        .ball-counter {
+            font-family: 'Rubik', sans-serif;
+            font-size: 1.2rem;
+            color: #FFFFFF;
+            margin-top: 10px;
+        }
+
+        .decorative-pin {
+            position: absolute;
+            bottom: 28%;
+            width: 160px; /* Adjusted size */
+            pointer-events: none;
+        }
+
+        #leftPin {
+            left: 5%; /* More space from the left border */
+        }
+
+        #rightPin {
+            right: 5%; /* More space from the right border */
+        }
+    </style>
+</head>
+<body>
+    <h1 id="title">2024 Frames of Festivity</h1>
+    <button class="button" id="startButton">Start Game</button>
+    <canvas id="gameCanvas" width="800" height="400" style="display: none;"></canvas>
+    <div class="ball-counter" id="ballCounter" style="display: none;">Balls Left: 3</div>
+    <div class="scoreboard-grid" style="display: none;" id="scoreboardGrid">
+        <img src="2024_12_11_13e_Kleki.png" alt="Bowling Pin Left" class="decorative-pin" id="leftPin" style="display: block;">
+        <img src="2024_12_11_13e_Kleki.png" alt="Bowling Pin Right" class="decorative-pin" id="rightPin" style="display: block;">
+        <div class="score-header">1</div>
+        <div class="score-header">2</div>
+        <div class="score-header">3</div>
+        <div class="score-header">4</div>
+        <div class="score-header">5</div>
+        <div class="score-header">6</div>
+        <div class="score-header">7</div>
+        <div class="score-header">8</div>
+        <div class="score-header">9</div>
+        <div class="score-header">10</div>
+        <div class="score-header">TOTAL</div>
+        <div class="score-cell" id="score1"></div>
+        <div class="score-cell" id="score2"></div>
+        <div class="score-cell" id="score3"></div>
+        <div class="score-cell" id="score4"></div>
+        <div class="score-cell" id="score5"></div>
+        <div class="score-cell" id="score6"></div>
+        <div class="score-cell" id="score7"></div>
+        <div class="score-cell" id="score8"></div>
+        <div class="score-cell" id="score9"></div>
+        <div class="score-cell" id="score10"></div>
+        <div class="score-cell" id="totalScoreCell"></div>
+    </div>
+
+    <script>
+        const startButton = document.getElementById('startButton');
+        const gameCanvas = document.getElementById('gameCanvas');
+        const scoreboardGrid = document.getElementById('scoreboardGrid');
+        const ballCounter = document.getElementById('ballCounter');
+        const title = document.getElementById('title');
+        const leftPin = document.getElementById('leftPin');
+        const rightPin = document.getElementById('rightPin');
+
+        const ctx = gameCanvas.getContext('2d');
+
+        let round = 1;
+        let roundScore = 0;
+        let totalScore = 0;
+        let ballsLeft = 3;
+        let ballPositionX = gameCanvas.width / 2;
+        let ballPositionY = gameCanvas.height - 50;
+        let ballRadius = 20;
+        let ballMoving = false;
+        let ballSpeedX = 2;
+        let ballSpeedY = -5;
+        let ballDirection = 1;
+
+        const pins = [];
+
+        function initializePins() {
+            const pinRadius = 15;
+            const rows = 4;
+            const yStart = 200;
+            const xStart = gameCanvas.width / 2;
+
+            pins.length = 0;
+            for (let row = 0; row < rows; row++) {
+                for (let col = 0; col <= row; col++) {
+                    const x = xStart - row * pinRadius + col * pinRadius * 2;
+                    const y = yStart - row * pinRadius * 2;
+                    pins.push({ x, y, radius: pinRadius, active: true });
+                }
+            }
+        }
+
+        function drawPins() {
+            pins.forEach(pin => {
+                if (pin.active) {
+                    ctx.beginPath();
+                    ctx.arc(pin.x, pin.y, pin.radius, 0, Math.PI * 2);
+                    ctx.fillStyle = '#FFFFFF';
+                    ctx.fill();
+                    ctx.closePath();
+                }
+            });
+        }
+
+        function drawBall() {
+            ctx.beginPath();
+            ctx.arc(ballPositionX, ballPositionY, ballRadius, 0, Math.PI * 2);
+            ctx.fillStyle = '#FFFFFF';
+            ctx.fill();
+            ctx.closePath();
+        }
+
+        function updateBall() {
+            if (!ballMoving) {
+                ballPositionX += ballSpeedX * ballDirection;
+                if (ballPositionX - ballRadius < 0 || ballPositionX + ballRadius > gameCanvas.width) {
+                    ballDirection *= -1;
+                }
+            } else {
+                ballPositionY += ballSpeedY;
+
+                if (ballPositionY - ballRadius < 0) {
+                    resetBall();
+                }
+            }
+        }
+
+        function checkCollision() {
+            pins.forEach(pin => {
+                if (
+                    pin.active &&
+                    Math.hypot(ballPositionX - pin.x, ballPositionY - pin.y) < ballRadius + pin.radius
+                ) {
+                    pin.active = false;
+                    roundScore++;
+                    totalScore++;
+                }
+            });
+        }
+
+        function resetBall() {
+            if (ballsLeft > 0) {
+                ballsLeft--;
+                ballCounter.textContent = `Balls Left: ${ballsLeft}`;
+                ballPositionX = gameCanvas.width / 2;
+                ballPositionY = gameCanvas.height - 50;
+                ballMoving = false;
+            }
+
+            if (ballsLeft === 0) {
+                setTimeout(() => endRound(), 500);
+            }
+        }
+
+        function updateScoreboardGrid(round, score, totalScore) {
+            document.getElementById(`score${round}`).textContent = score;
+            document.getElementById("totalScoreCell").textContent = totalScore;
+        }
+
+        function endRound() {
+            alert(`Round ${round} over! You scored ${roundScore} points this round.`);
+            updateScoreboardGrid(round, roundScore, totalScore);
+
+            if (round < 10) {
+                round++;
+                roundScore = 0;
+                ballsLeft = 3;
+                ballCounter.textContent = `Balls Left: ${ballsLeft}`;
+                initializePins();
+
+                ballPositionX = gameCanvas.width / 2;
+                ballPositionY = gameCanvas.height - 50;
+                ballMoving = false;
+
+                ballSpeedX += 0.5;
+                ballSpeedY -= 0.5;
+            } else {
+                endGame();
+            }
+        }
+
+        function endGame() {
+            alert(`Game over! Your total score is ${totalScore}.`);
+            gameCanvas.style.display = 'none';
+            ballCounter.style.display = 'none';
+            leftPin.style.display = 'none';
+            rightPin.style.display = 'none';
+            scoreboardGrid.style.display = 'grid'; // Ensure scoreboard is displayed
+
+            title.textContent = "Game Over";
+            title.style.fontSize = "2rem";
+
+            const playAgainButton = document.createElement("button");
+            playAgainButton.textContent = "Play Again";
+            playAgainButton.className = "button";
+            playAgainButton.onclick = () => location.reload();
+            document.body.appendChild(playAgainButton);
+        }
+
+        function gameLoop() {
+            ctx.clearRect(0, 0, gameCanvas.width, gameCanvas.height);
+            drawPins();
+            drawBall();
+            updateBall();
+            checkCollision();
+            requestAnimationFrame(gameLoop);
+        }
+
+        startButton.addEventListener('click', () => {
+            startButton.style.display = 'none';
+            gameCanvas.style.display = 'block';
+            scoreboardGrid.style.display = 'grid';
+            ballCounter.style.display = 'block';
+
+            initializePins();
+            gameLoop();
+        });
+
+        gameCanvas.addEventListener('click', () => {
+            if (!ballMoving && ballsLeft > 0) {
+                ballMoving = true;
+            }
+        });
+    </script>
+</body>
+</html>
